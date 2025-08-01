@@ -229,6 +229,8 @@ This allows it to optimize the query plan and **minimize the amount of data proc
 
 ## Spark API Stack
 
+![Spark Full Stack](../figures/2.k.png)
+
 Apache Spark is a **unified data processing platform** that supports various workloads:
 
 - **Batch processing**
@@ -310,4 +312,135 @@ Structured API includes two main types:
    - Allows compile-time type safety (available in Scala/Java only)
 
 > ✅ **Note:** Since **Spark 2.0**, both DataFrames and Datasets are unified under a single API. We’ll explore them in detail in the next chapter.
+
+
+
+## Spark Streaming
+
+**Spark Streaming** is an extension of the Spark Core API that enables real-time processing of data streams. It supports ingestion from sources such as:
+
+- Kafka
+- Kinesis
+- Flume
+- Network sockets
+
+You can apply a variety of processing tasks on streaming data, including:
+
+- Machine learning
+- On-the-fly and incremental aggregations
+- Data transformation
+- Integration with other Spark apps or external systems
+
+---
+
+### How Spark Streaming Works
+
+Spark Streaming splits incoming data into **micro-batches** based on a configured time interval. Each batch is then processed independently and in parallel.
+
+> **Example:**  
+If you configure a 3-second interval, Spark will process one micro-batch (an RDD) every 3 seconds.
+
+In a batch job, a transformation like `map()` results in a single RDD. In streaming, the same operation results in a **sequence of RDDs**, one for each micro-batch.
+
+This sequence is abstracted as a **DStream (Discretized Stream)** — a high-level abstraction representing a continuous stream of data as a series of RDDs.
+
+---
+![](../figures/2.l.png)
+
+### Parallel Execution with DStreams
+
+Each batch flows through the same DAG (set of operations):
+
+- `Batch 1` enters operation 1 (e.g., `map`)
+- Simultaneously, `Batch 2` enters the pipeline at operation 1
+- Meanwhile, `Batch 1` moves to operation 2 (e.g., `filter`), and so on
+
+> This parallelism allows continuous stream processing without delay.
+
+---
+
+## Structured Streaming
+
+**Structured Streaming** is a modern approach built on top of Spark SQL and Structured APIs (DataFrames & Datasets). It treats incoming data as **a continuously growing table**.
+
+A **Spark SQL query** is applied on top of this unbounded table, and the results are written to external systems like:
+
+- S3
+- HDFS
+- Databases
+- Dashboards
+
+---
+
+### Development Workflow
+
+The typical flow of a Structured Streaming application involves:
+
+1. **Define input source** (e.g., Kafka, Kinesis, Flume, or socket)
+2. **Write a batch query** using DataFrame/Dataset API or Spark SQL
+3. **Set a trigger** to control when to process new data
+4. **Select an output mode** to define what data gets pushed after each trigger
+
+> Think of it like a DataFrame that continuously receives new records and applies a query on them.
+
+---
+
+### Example Use Case
+
+Retail store sales streaming every 3 seconds:
+
+- Stream includes: `(Product ID, Quantity Sold)`
+- Spark performs real-time aggregation by product ID
+- Note: Spark **does not store** source data. It reads, computes, and discards
+
+---
+
+## Output Modes in Structured Streaming
+
+There are three output modes, depending on the application needs:
+
+### 1. Complete Mode
+
+- Pushes the **entire updated result table** after every trigger
+- Suitable for aggregations where full results are expected each time
+
+![](../figures/2.o.png)
+
+> 💡 Example: Push complete aggregated sales table to dashboard every 3 seconds
+
+---
+
+### 2. Append Mode
+
+- Only **new rows** added since the last trigger are sent to output
+- Suitable when data **does not change** after it is added
+
+![](../figures/2.p.png)
+
+> ⚠️ Not suitable for aggregation unless using **watermarking** to discard old state
+
+> ❌ Without watermark:
+  - Aggregated values may update (e.g., product 100 sales), but won't be pushed
+  - Results in incorrect or missing updates
+
+> ✅ Suitable for transformations like `map()` or `flatMap()` where rows are independent
+
+---
+
+### 3. Update Mode
+
+- Only **updated rows** since the last trigger are pushed
+- Best for stateful applications like IoT systems
+
+
+![](../figures/2.q.png)
+
+> **Example:**  
+IoT sensors stream data in format `(sensor ID, count)`  
+Spark keeps a state per sensor and compares the count after each trigger  
+Only **updated sensors** are pushed to the external system
+
+
+---
+
 
