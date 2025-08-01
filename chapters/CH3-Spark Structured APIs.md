@@ -45,7 +45,7 @@ This structure makes it accessible to:
 ---
 
 ## ⚙️ Spark Execution Pipeline (Behind the Scenes)
-![figure](..figures/4.a.png) 
+![](../figures/4.a.png)
 
 Whenever a DataFrame, Dataset, or SQL query is submitted to Spark, it goes through multiple planning and optimization phases:
 
@@ -82,3 +82,45 @@ Now that we understand how Spark translates Structured API code into an executab
 - **Common transformations and actions**
 - **SQL syntax with Spark**
 
+---
+
+## 📘 DataFrames in Spark Structured API
+
+A **DataFrame** is a core part of the Structured API and is built on top of the **RDD API**, so it inherits:
+
+- ✅ **Immutability**: You can’t modify a DataFrame directly — any transformation (e.g., `filter`, `select`) creates a **new DataFrame**.
+- ✅ **Lazy Evaluation**: Transformations are not executed immediately. Spark **waits** until an **action** (e.g., `count()`, `show()`, `collect()`) is called before actually performing computations.
+
+---
+
+### 🧩 What is a DataFrame?
+
+A **DataFrame** is a **distributed table** with:
+- **Columns** (each with a name and a data type)
+- **Rows** (records)
+
+This structure is very similar to a table in a **relational database**.
+
+---
+
+### 🧾 Schema
+
+The **schema** of a DataFrame defines:
+- 📌 **Column Name**
+- 📌 **Data Type**
+
+> Example schema:
+```text
+| Name      | Type    |
+|-----------|---------|
+| id        | Integer |
+| name      | String  |
+| salary    | Double  |
+
+```
+
+Schemas allow Spark to:
+
+- ✅ Understand the structure of the data
+- 🚀 Apply optimizations at query time
+- 🛡️ Validate queries during execution planning
