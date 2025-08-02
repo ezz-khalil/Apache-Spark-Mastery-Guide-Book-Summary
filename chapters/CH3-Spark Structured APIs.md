@@ -1,5 +1,5 @@
 # Chapter 3: Spark Structured APIs
-
+> 📓 👉 All code examples for the DataFrame Operations section can be found in the notebook included in this repo: [`CH3_code_demo.ipynb`](chapters/Notebooks/Ch3_code_demo.ipynb)
 ## What Are Structured APIs?
 
 Spark’s **Structured APIs** allow you to process data as **immutable distributed collections** in the form of **columns and rows**, similar to a **relational database table**.
@@ -124,3 +124,154 @@ Schemas allow Spark to:
 - ✅ Understand the structure of the data
 - 🚀 Apply optimizations at query time
 - 🛡️ Validate queries during execution planning
+
+---
+
+# 📂 Partitioning in Spark Structured API
+
+As discussed earlier in the RDD section, a **DataFrame or Dataset** is essentially built on top of RDDs, which means it's **distributed by nature**. Each RDD is broken into **partitions**, and these partitions are distributed across different worker nodes in the cluster.
+
+When a DataFrame operation is executed, each **executor** works independently on its assigned partition. This section explores **how partitioning works**, **how to control it**, and **why it matters**.
+
+---
+
+## ❓ Why Partitioning Matters
+
+Partitioning can significantly enhance performance — especially in operations like **joins** and **aggregations**.
+
+- 🔁 If data is partitioned by the **join key**, all values related to that key will reside on the same node → reducing **shuffles** and **network traffic**.
+- 🚫 If no joins or grouping operations are performed, partitioning might not help — and can **hurt performance** if misused.
+
+---
+
+## ⚖️ Too Few vs Too Many Partitions
+
+- **Too few partitions** → low concurrency, poor resource utilization.
+- **Too many partitions** → overhead, longer execution times.
+
+> 🧠 Best practice: The ideal number of partitions depends on:
+> - Number of **CPU cores** across the cluster.
+> - The application’s **business logic**.
+
+---
+
+## 🗝️ Guidelines for Choosing Partition Keys
+
+1. Use columns that are **frequently involved in joins**.
+2. ❌ Avoid **skewed columns** — where one or two values dominate the dataset.
+
+---
+
+## 🔍 Get Number of Partitions
+
+```python
+print("Number of Partitions:", df.rdd.getNumPartitions())
+```
+
+Alternate method:
+
+```python
+print("Partitions Size:", len(df.rdd.partitions))
+```
+
+---
+
+## 🏗️ Setting Partitions During Read
+
+You can specify the number of partitions **while reading** data:
+
+```python
+df = spark.read.csv("/path/to/file.csv", header=True, schema=schema) \
+    .repartition(10)
+```
+
+- Spark distributes data across **10 partitions** using **hash partitioning**.
+
+---
+
+## 🧩 Partition by Column(s)
+
+You can partition based on a **column** or **multiple columns**:
+
+```python
+df = spark.read.csv("/path/to/file.csv", header=True, schema=schema) \
+    .repartition("DEPARTEMENT")
+```
+
+🧠 Note:
+- Spark uses **200** partitions by default (`spark.sql.shuffle.partitions`)
+- If your column has **37 distinct values**, only 37 will have data — **163 will be empty**
+
+---
+
+## ⚙️ Change Default Shuffle Partitions
+
+Update the config in `SparkSession`:
+
+```python
+spark = SparkSession.builder \
+    .appName("MyApp") \
+    .config("spark.sql.shuffle.partitions", "150") \
+    .getOrCreate()
+```
+
+---
+
+## 🔀 Partition by Column + Set Number of Partitions
+
+You can also partition by a column and control the number of partitions:
+
+```python
+df = df.repartition(15, col("DEPARTEMENT"))
+```
+
+Spark computes:
+```
+partition = hash(partition_key) % number_of_partitions
+```
+
+---
+
+## 🔁 Repartition an Existing DataFrame
+
+```python
+df_partitioned = df.repartition(15, col("DEPARTEMENT"))
+
+print("Original Partitions:", df.rdd.getNumPartitions())
+print("New Partitions:", df_partitioned.rdd.getNumPartitions())
+```
+
+---
+
+## 💾 Cache or Persist Partitioned Data
+
+If you plan to reuse the partitioned DataFrame:
+
+```python
+df_partitioned.cache()
+# or
+df_partitioned.persist()
+```
+
+---
+
+## 📝 Important Notes
+
+| Concept    | Description                            |
+|------------|----------------------------------------|
+| Jobs       | Determined by number of actions        |
+| Stages     | Determined by number of shuffles       |
+| Tasks      | Determined by number of partitions     |
+
+> ✅ Spark will generate partitions equal to the value of `spark.sql.shuffle.partitions` when partitioning by column(s).
+>
+> If your DataFrame has **fewer distinct values**, the rest of the partitions will be **empty**.
+
+---
+
+## ✅ Summary
+
+- Partitioning improves performance in joins and aggregations.
+- Set partitions smartly — avoid skew and unnecessary overhead.
+- Monitor and tune partition count based on the cluster and workload.
+
