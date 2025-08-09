@@ -24,7 +24,7 @@ The **Apache Spark Mastery Guide** provides a comprehensive and practical approa
 │   ├── chapter3.md
 │   └── chapter4.md
     └── Notebooks/         # Databricks PySpark notebooks (.ipynb)
-    └── CH3_code_demo.ipynb
+        └── CH3_code_demo.ipynb
 
 │
 ├── figures/           # Images and diagrams used in summaries
